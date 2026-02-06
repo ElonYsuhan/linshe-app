@@ -10,6 +10,8 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import { Alert, Image, Platform, ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 /* ---------------- 图片选择卡片 ---------------- */
 const ImageCard = () => {
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -162,9 +164,12 @@ const SunmiPrintCard = () => {
 };
 /* ---------------- 页面入口 ---------------- */
 export function HomePage() {
+  const insets = useSafeAreaInsets();
   return (
     <ApplicationProvider {...eva} theme={eva.light}>
-      <Layout style={{ flex: 1, backgroundColor: "#f7f9fc" }}>
+      <Layout
+        style={{ flex: 1, backgroundColor: "#f7f9fc", paddingTop: insets.top }}
+      >
         <ScrollView
           contentContainerStyle={{
             padding: 16,

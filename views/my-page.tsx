@@ -3,14 +3,21 @@ import { LoginModal } from "@/components/LoginModal";
 import * as eva from "@eva-design/eva";
 import { ApplicationProvider, Layout, Text } from "@ui-kitten/components";
 import React from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const HomeScreen = () => {
   const { isLoggedIn } = useAuth();
 
+  const insets = useSafeAreaInsets();
   return (
     <>
       <Layout
-        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          paddingTop: insets.top,
+        }}
       >
         <Text category="h1">My Page</Text>
         {!isLoggedIn && <Text appearance="hint">当前未登录</Text>}
