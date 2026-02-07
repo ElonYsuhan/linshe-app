@@ -1,4 +1,6 @@
-import { printText } from "@/native/Sunmi"; // 路径按你实际的来
+import { ScanHeadCard } from "@/components/ScanHeadCard";
+import SunmiPrintCard from "@/components/SunmiPrintCard";
+import SunmiScanCard from "@/components/SunmiScanCard";
 import * as eva from "@eva-design/eva";
 import {
   ApplicationProvider,
@@ -9,7 +11,7 @@ import {
 } from "@ui-kitten/components";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
-import { Alert, Image, Platform, ScrollView, View } from "react-native";
+import { Image, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /* ---------------- 图片选择卡片 ---------------- */
@@ -111,7 +113,9 @@ const RequestCard = () => {
       <Text appearance="hint" style={{ marginBottom: 12 }}>
         请求接口并以 JSON 格式显示返回结果
       </Text>
-
+      <Text appearance="hint" style={{ marginBottom: 12 }}>
+        URL：https://jsonplaceholder.typicode.com/todos/1
+      </Text>
       <ScrollView
         style={{
           height: 200,
@@ -137,31 +141,7 @@ const RequestCard = () => {
     </Card>
   );
 };
-/* ---------------- 商米打印卡片 ---------------- */
-const SunmiPrintCard = () => {
-  const handlePrint = () => {
-    if (Platform.OS !== "android") {
-      Alert.alert("提示", "商米打印仅支持 Android 设备");
-      return;
-    }
 
-    printText("商米打印测试：Hello Sunmi!");
-  };
-
-  return (
-    <Card style={{ marginTop: 16 }}>
-      <Text category="h6" style={{ marginBottom: 8 }}>
-        商米打印测试
-      </Text>
-
-      <Text appearance="hint" style={{ marginBottom: 12 }}>
-        点击按钮，调用 NativeModule 进行打印
-      </Text>
-
-      <Button onPress={handlePrint}>打印测试</Button>
-    </Card>
-  );
-};
 /* ---------------- 页面入口 ---------------- */
 export function HomePage() {
   const insets = useSafeAreaInsets();
@@ -179,6 +159,8 @@ export function HomePage() {
           <ImageCard />
           <RequestCard />
           <SunmiPrintCard />
+          <SunmiScanCard />
+          <ScanHeadCard />
         </ScrollView>
       </Layout>
     </ApplicationProvider>
