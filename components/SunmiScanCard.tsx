@@ -1,14 +1,28 @@
-import { openSunmiScan } from "@/native/SunmiScanner";
+import { scanManager } from "@/native/Scanner";
 import { Button, Card, Text } from "@ui-kitten/components";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export const SunmiScanCard = () => {
   const [result, setResult] = useState<string>("");
 
+  useEffect(() => {
+    // 注册事件回调
+    const callback = (code: string) => {
+      setResult(`扫码结果：${code}`);
+    };
+    scanManager.onScan(callback);
+    scanManager.start();
+
+    return () => {
+      scanManager.stop();
+    };
+  }, []);
+
   const handleScan = async () => {
     try {
-      const res = await openSunmiScan();
-      setResult(`${res.type}：${res.value}`);
+      // 调用原生扫码
+      const code = await scanManager.scan();
+      setResult(`扫码结果：${code}`);
     } catch (e: any) {
       setResult(`扫码失败：${e?.message || e}`);
     }
@@ -24,8 +38,9 @@ export const SunmiScanCard = () => {
 
       <Button onPress={handleScan}>开始扫码</Button>
 
-      {result ? <Text style={{ marginTop: 12 }}>结果：{result}</Text> : null}
+      {result ? <Text style={{ marginTop: 12 }}>{result}</Text> : null}
     </Card>
   );
 };
+
 export default SunmiScanCard;

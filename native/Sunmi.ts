@@ -1,11 +1,18 @@
-import { NativeModules, Platform } from "react-native";
+import { NativeModules, Platform } from 'react-native';
 
-const { SunmiModule } = NativeModules;
+const { SunmiPrinter } = NativeModules;
+console.log('SunmiPrinterModule:', SunmiPrinter);
 
-/**
- * 打印一行文字
- */
+
 export function printText(text: string) {
-    if (Platform.OS !== "android") return;
-    return SunmiModule.printText(text);
+    if (Platform.OS !== 'android') return;
+    console.log('SunmiPrinterModule:', SunmiPrinter);
+
+    return SunmiPrinter.printText(text)
+        .then((res: string) => {
+            console.log('🖨️ 打印成功:', res);
+        })
+        .catch((err: any) => {
+            console.error('❌ 打印失败:', err);
+        });
 }

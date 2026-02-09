@@ -11,7 +11,7 @@ import {
 } from "@ui-kitten/components";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
-import { Image, ScrollView, View } from "react-native";
+import { Image, NativeModules, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /* ---------------- 图片选择卡片 ---------------- */
@@ -37,43 +37,45 @@ const ImageCard = () => {
   };
 
   return (
-    <Card style={{ marginBottom: 16 }}>
-      <Text category="h6" style={{ marginBottom: 8 }}>
-        本地图片读取
-      </Text>
+    <>
+      <Card style={{ marginBottom: 16 }}>
+        <Text category="h6" style={{ marginBottom: 8 }}>
+          本地图片读取
+        </Text>
 
-      <Text appearance="hint" style={{ marginBottom: 12 }}>
-        选择本地图片并显示
-      </Text>
+        <Text appearance="hint" style={{ marginBottom: 12 }}>
+          选择本地图片并显示
+        </Text>
 
-      {imageUri ? (
-        <Image
-          source={{ uri: imageUri }}
-          style={{
-            width: "100%",
-            height: 200,
-            borderRadius: 8,
-            marginBottom: 12,
-          }}
-          resizeMode="contain"
-        />
-      ) : (
-        <View
-          style={{
-            height: 200,
-            borderRadius: 8,
-            backgroundColor: "#f2f2f2",
-            justifyContent: "center",
-            alignItems: "center",
-            marginBottom: 12,
-          }}
-        >
-          <Text appearance="hint">暂无图片</Text>
-        </View>
-      )}
+        {imageUri ? (
+          <Image
+            source={{ uri: imageUri }}
+            style={{
+              width: "100%",
+              height: 200,
+              borderRadius: 8,
+              marginBottom: 12,
+            }}
+            resizeMode="contain"
+          />
+        ) : (
+          <View
+            style={{
+              height: 200,
+              borderRadius: 8,
+              backgroundColor: "#f2f2f2",
+              justifyContent: "center",
+              alignItems: "center",
+              marginBottom: 12,
+            }}
+          >
+            <Text appearance="hint">暂无图片</Text>
+          </View>
+        )}
 
-      <Button onPress={pickImage}>打开图片</Button>
-    </Card>
+        <Button onPress={pickImage}>打开图片</Button>
+      </Card>
+    </>
   );
 };
 
@@ -141,7 +143,33 @@ const RequestCard = () => {
     </Card>
   );
 };
+function NativeDebugCard() {
+  const moduleNames = Object.keys(NativeModules);
 
+  return (
+    <Card style={{ marginTop: 16 }}>
+      <Text category="h6" style={{ marginBottom: 8 }}>
+        NativeModules 调试
+      </Text>
+
+      <Text appearance="hint" style={{ marginBottom: 12 }}>
+        当前已注册的原生模块（{moduleNames.length} 个）
+      </Text>
+
+      <ScrollView style={{ maxHeight: 300 }}>
+        {moduleNames.length === 0 ? (
+          <Text status="warning">⚠️ NativeModules 为空</Text>
+        ) : (
+          moduleNames.map((name) => (
+            <Text key={name} style={{ fontSize: 12 }}>
+              • {name}
+            </Text>
+          ))
+        )}
+      </ScrollView>
+    </Card>
+  );
+}
 /* ---------------- 页面入口 ---------------- */
 export function HomePage() {
   const insets = useSafeAreaInsets();
@@ -156,6 +184,7 @@ export function HomePage() {
           }}
           showsVerticalScrollIndicator={false}
         >
+          {/* <NativeDebugCard /> */}
           <ImageCard />
           <RequestCard />
           <SunmiPrintCard />

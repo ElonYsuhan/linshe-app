@@ -1,40 +1,55 @@
-import { scanManager } from "@/native/Scanner";
 import { Card, Input, Text } from "@ui-kitten/components";
 import { useEffect, useRef, useState } from "react";
-import { Keyboard, Platform } from "react-native";
+import {
+  Keyboard,
+  NativeEventEmitter,
+  NativeModules,
+  Platform,
+} from "react-native";
 
 interface Props {
   onScan?: (code: string) => void;
+  /** true 使用广播模式，false 使用键盘模拟模式 */
+  useBroadcast?: boolean;
 }
 
-export function ScanHeadCard({ onScan }: Props) {
+export function ScanHeadCard({ onScan, useBroadcast = true }: Props) {
   const inputRef = useRef<Input>(null);
   const [value, setValue] = useState("");
 
-  /** 统一处理扫码结果 */
+  /** 扫码结果统一处理 */
   const handleScan = (code: string) => {
     if (!code) return;
-
     setValue(code);
     onScan?.(code);
 
-    // 保持焦点，支持连续扫码
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 100);
+    // 支持连续扫码
+    setTimeout(() => inputRef.current?.focus(), 100);
   };
 
-  /** 启动红外扫码监听 */
+  /** 广播模式（商米 App 广播） */
   useEffect(() => {
-    if (Platform.OS === "android") {
-      scanManager.start();
-      scanManager.onScan(handleScan);
-    }
+    if (Platform.OS !== "android" || !useBroadcast) return;
 
-    return () => {
-      scanManager.stop();
-    };
-  }, []);
+    const listener =
+      NativeModules.DeviceEventEmitter || new NativeEventEmitter();
+    const subscription = listener.addListener(
+      "onScanSuccess",
+      (code: string) => {
+        handleScan(code);
+      },
+    );
+
+    return () => subscription.remove();
+  }, [useBroadcast]);
+
+  /** 模拟键盘模式 */
+  useEffect(() => {
+    if (Platform.OS !== "android" || useBroadcast) return;
+
+    // 聚焦 Input 支持扫码枪直接输入
+    inputRef.current?.focus();
+  }, [useBroadcast]);
 
   return (
     <Card style={{ marginTop: 16 }}>
@@ -50,14 +65,13 @@ export function ScanHeadCard({ onScan }: Props) {
         onChangeText={(text) => {
           setValue(text);
 
-          // 键盘模拟输入回车触发
-          if (text.endsWith("\n")) {
+          if (!useBroadcast && text.endsWith("\n")) {
             handleScan(text.trim());
             Keyboard.dismiss();
           }
         }}
         onSubmitEditing={() => {
-          handleScan(value.trim());
+          if (!useBroadcast) handleScan(value.trim());
         }}
       />
 
