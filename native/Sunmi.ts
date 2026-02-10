@@ -1,18 +1,36 @@
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules, Platform } from "react-native";
 
-const { SunmiPrinter } = NativeModules;
-console.log('SunmiPrinterModule:', SunmiPrinter);
+type SunmiPrinterModule = {
+  printText: (text: string) => Promise<unknown>;
+};
 
+const sunmiPrinter = NativeModules
+  .SunmiPrinter as Partial<SunmiPrinterModule> | undefined;
 
-export function printText(text: string) {
-    if (Platform.OS !== 'android') return;
-    console.log('SunmiPrinterModule:', SunmiPrinter);
+function assertAndroid() {
+  if (Platform.OS !== "android") {
+    throw new Error("当前设备不是 Android，无法调用商米打印");
+  }
+}
 
-    return SunmiPrinter.printText(text)
-        .then((res: string) => {
-            console.log('🖨️ 打印成功:', res);
-        })
-        .catch((err: any) => {
-            console.error('❌ 打印失败:', err);
-        });
+function assertPrinterModule(): SunmiPrinterModule {
+  if (!sunmiPrinter || typeof sunmiPrinter.printText !== "function") {
+    throw new Error(
+      "未找到 SunmiPrinter 原生模块，请先完成 Android 原生桥接并重新编译应用",
+    );
+  }
+
+  return sunmiPrinter as SunmiPrinterModule;
+}
+
+export async function printText(text: string) {
+  assertAndroid();
+
+  const content = text.trim();
+  if (!content) {
+    throw new Error("打印内容不能为空");
+  }
+
+  const module = assertPrinterModule();
+  return module.printText(content);
 }

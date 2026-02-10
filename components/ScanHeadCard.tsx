@@ -1,83 +1,74 @@
-import { Card, Input, Text } from "@ui-kitten/components";
+import { scanManager } from "@/native/Scanner";
+import { Button, Card, Input, Text } from "@ui-kitten/components";
 import { useEffect, useRef, useState } from "react";
-import {
-  Keyboard,
-  NativeEventEmitter,
-  NativeModules,
-  Platform,
-} from "react-native";
+import { Keyboard, Platform } from "react-native";
 
 interface Props {
+  value?: string;
   onScan?: (code: string) => void;
-  /** true 使用广播模式，false 使用键盘模拟模式 */
-  useBroadcast?: boolean;
 }
 
-export function ScanHeadCard({ onScan, useBroadcast = true }: Props) {
+export function ScanHeadCard({ value, onScan }: Props) {
   const inputRef = useRef<Input>(null);
-  const [value, setValue] = useState("");
+  const [inputValue, setInputValue] = useState("");
 
-  /** 扫码结果统一处理 */
-  const handleScan = (code: string) => {
-    if (!code) return;
-    setValue(code);
-    onScan?.(code);
+  useEffect(() => {
+    if (typeof value === "string") {
+      setInputValue(value);
+    }
+  }, [value]);
 
-    // 支持连续扫码
-    setTimeout(() => inputRef.current?.focus(), 100);
+  useEffect(() => {
+    if (Platform.OS !== "android") {
+      return;
+    }
+
+    scanManager.start();
+    const unsubscribe = scanManager.onScan((code) => {
+      setInputValue(code);
+      onScan?.(code);
+      setTimeout(() => inputRef.current?.focus(), 100);
+    });
+
+    return () => {
+      unsubscribe();
+      scanManager.stop();
+    };
+  }, [onScan]);
+
+  const commitManualInput = () => {
+    const code = inputValue.trim();
+    if (!code) {
+      return;
+    }
+
+    scanManager.emitScan(code);
+    Keyboard.dismiss();
   };
-
-  /** 广播模式（商米 App 广播） */
-  useEffect(() => {
-    if (Platform.OS !== "android" || !useBroadcast) return;
-
-    const listener =
-      NativeModules.DeviceEventEmitter || new NativeEventEmitter();
-    const subscription = listener.addListener(
-      "onScanSuccess",
-      (code: string) => {
-        handleScan(code);
-      },
-    );
-
-    return () => subscription.remove();
-  }, [useBroadcast]);
-
-  /** 模拟键盘模式 */
-  useEffect(() => {
-    if (Platform.OS !== "android" || useBroadcast) return;
-
-    // 聚焦 Input 支持扫码枪直接输入
-    inputRef.current?.focus();
-  }, [useBroadcast]);
 
   return (
     <Card style={{ marginTop: 16 }}>
-      <Text category="s1" style={{ marginBottom: 8 }}>
-        请按扫码键或输入条码
+      <Text category="h6" style={{ marginBottom: 8 }}>
+        获取扫码内容
+      </Text>
+
+      <Text appearance="hint" style={{ marginBottom: 12 }}>
+        支持原生扫码回传，也支持手动输入测试
       </Text>
 
       <Input
         ref={inputRef}
         autoFocus
-        value={value}
-        placeholder="扫码结果会自动输入"
-        onChangeText={(text) => {
-          setValue(text);
-
-          if (!useBroadcast && text.endsWith("\n")) {
-            handleScan(text.trim());
-            Keyboard.dismiss();
-          }
-        }}
-        onSubmitEditing={() => {
-          if (!useBroadcast) handleScan(value.trim());
-        }}
+        value={inputValue}
+        placeholder="扫码结果会显示在这里"
+        onChangeText={setInputValue}
+        onSubmitEditing={commitManualInput}
+        style={{ marginBottom: 12 }}
       />
 
-      <Text appearance="hint" style={{ marginTop: 8 }}>
-        输出模式支持广播模式 / 模拟键盘
-      </Text>
+      <Button appearance="outline" onPress={commitManualInput}>
+        确认扫码内容
+      </Button>
     </Card>
   );
 }

@@ -1,4 +1,4 @@
-import { printText } from "@/native/Sunmi"; // 你自己的路径
+import { printText } from "@/native/Sunmi";
 import { Button, Card, Input, Spinner, Text } from "@ui-kitten/components";
 import React, { useState } from "react";
 import { Alert, Platform } from "react-native";
@@ -14,24 +14,21 @@ const SunmiPrintCard = () => {
       return;
     }
 
-    if (!value.trim()) {
-      Alert.alert("提示", "请输入要打印的内容");
-      return;
-    }
-
     try {
       setLoading(true);
       setResult("");
 
-      // 🔥 关键：等待 Native 返回
-      const res = await printText(value);
+      const printResult = await printText(value);
+      const text =
+        printResult === undefined
+          ? "打印指令已发送"
+          : `打印成功：${JSON.stringify(printResult)}`;
 
-      // 兼容你后面 Native return 的结构
-      setResult(
-        res ? `打印成功：${JSON.stringify(res)}` : "打印指令已发送（无返回值）",
-      );
-    } catch (e: any) {
-      setResult(`打印失败：${e?.message || e}`);
+      setResult(text);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "调用商米打印失败";
+      setResult(`打印失败：${message}`);
     } finally {
       setLoading(false);
     }
@@ -40,14 +37,13 @@ const SunmiPrintCard = () => {
   return (
     <Card style={{ marginTop: 16 }}>
       <Text category="h6" style={{ marginBottom: 8 }}>
-        商米打印测试
+        商米打印
       </Text>
 
       <Text appearance="hint" style={{ marginBottom: 12 }}>
-        输入要打印的内容，调用 NativeModule 打印
+        输入内容后调用原生打印模块
       </Text>
 
-      {/* 输入框 */}
       <Input
         label="打印内容"
         placeholder="请输入要打印的文字"
@@ -58,16 +54,14 @@ const SunmiPrintCard = () => {
         style={{ marginBottom: 12 }}
       />
 
-      {/* 打印按钮 */}
       <Button
         onPress={handlePrint}
         disabled={loading}
         accessoryLeft={loading ? () => <Spinner size="small" /> : undefined}
       >
-        {loading ? "打印中..." : "打印测试"}
+        {loading ? "打印中..." : "开始打印"}
       </Button>
 
-      {/* 结果反馈 */}
       {result ? (
         <>
           <Text

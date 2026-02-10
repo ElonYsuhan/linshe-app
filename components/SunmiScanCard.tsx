@@ -1,30 +1,43 @@
 import { scanManager } from "@/native/Scanner";
-import { Button, Card, Text } from "@ui-kitten/components";
+import { Button, Card, Spinner, Text } from "@ui-kitten/components";
 import { useEffect, useState } from "react";
 
-export const SunmiScanCard = () => {
+interface SunmiScanCardProps {
+  onScan?: (code: string) => void;
+}
+
+export const SunmiScanCard = ({ onScan }: SunmiScanCardProps) => {
+  const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string>("");
 
   useEffect(() => {
-    // 注册事件回调
-    const callback = (code: string) => {
-      setResult(`扫码结果：${code}`);
-    };
-    scanManager.onScan(callback);
     scanManager.start();
 
+    const unsubscribe = scanManager.onScan((code) => {
+      setResult(`扫码结果：${code}`);
+      onScan?.(code);
+    });
+
     return () => {
+      unsubscribe();
       scanManager.stop();
     };
-  }, []);
+  }, [onScan]);
 
   const handleScan = async () => {
     try {
-      // 调用原生扫码
+      setLoading(true);
+      setResult("");
+
       const code = await scanManager.scan();
       setResult(`扫码结果：${code}`);
-    } catch (e: any) {
-      setResult(`扫码失败：${e?.message || e}`);
+      onScan?.(code);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "调用扫码模块失败";
+      setResult(`扫码失败：${message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -33,10 +46,16 @@ export const SunmiScanCard = () => {
       <Text category="h6">商米扫码</Text>
 
       <Text appearance="hint" style={{ marginVertical: 8 }}>
-        调用系统扫码模块
+        点击按钮调用原生扫码能力
       </Text>
 
-      <Button onPress={handleScan}>开始扫码</Button>
+      <Button
+        onPress={handleScan}
+        disabled={loading}
+        accessoryLeft={loading ? () => <Spinner size="small" /> : undefined}
+      >
+        {loading ? "扫码中..." : "开始扫码"}
+      </Button>
 
       {result ? <Text style={{ marginTop: 12 }}>{result}</Text> : null}
     </Card>

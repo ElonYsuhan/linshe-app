@@ -2,177 +2,19 @@ import { ScanHeadCard } from "@/components/ScanHeadCard";
 import SunmiPrintCard from "@/components/SunmiPrintCard";
 import SunmiScanCard from "@/components/SunmiScanCard";
 import * as eva from "@eva-design/eva";
-import {
-  ApplicationProvider,
-  Button,
-  Card,
-  Layout,
-  Text,
-} from "@ui-kitten/components";
-import * as ImagePicker from "expo-image-picker";
-import React, { useState } from "react";
-import { Image, NativeModules, ScrollView, View } from "react-native";
+import { ApplicationProvider, Layout } from "@ui-kitten/components";
+import { useCallback, useState } from "react";
+import { ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-/* ---------------- 图片选择卡片 ---------------- */
-const ImageCard = () => {
-  const [imageUri, setImageUri] = useState<string | null>(null);
-
-  const pickImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permission.granted) {
-      alert("需要访问相册权限");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
-    }
-  };
-
-  return (
-    <>
-      <Card style={{ marginBottom: 16 }}>
-        <Text category="h6" style={{ marginBottom: 8 }}>
-          本地图片读取
-        </Text>
-
-        <Text appearance="hint" style={{ marginBottom: 12 }}>
-          选择本地图片并显示
-        </Text>
-
-        {imageUri ? (
-          <Image
-            source={{ uri: imageUri }}
-            style={{
-              width: "100%",
-              height: 200,
-              borderRadius: 8,
-              marginBottom: 12,
-            }}
-            resizeMode="contain"
-          />
-        ) : (
-          <View
-            style={{
-              height: 200,
-              borderRadius: 8,
-              backgroundColor: "#f2f2f2",
-              justifyContent: "center",
-              alignItems: "center",
-              marginBottom: 12,
-            }}
-          >
-            <Text appearance="hint">暂无图片</Text>
-          </View>
-        )}
-
-        <Button onPress={pickImage}>打开图片</Button>
-      </Card>
-    </>
-  );
-};
-
-/* ---------------- 网络请求卡片 ---------------- */
-const RequestCard = () => {
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState("");
-
-  const sendRequest = async () => {
-    try {
-      setLoading(true);
-      setResult("");
-
-      const res = await fetch("https://jsonplaceholder.typicode.com/todos/1");
-      const data = await res.json();
-
-      setResult(JSON.stringify(data, null, 2));
-    } catch (e: any) {
-      setResult(
-        JSON.stringify(
-          { error: true, message: e?.message || "请求失败" },
-          null,
-          2,
-        ),
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Card>
-      <Text category="h6" style={{ marginBottom: 8 }}>
-        网络请求
-      </Text>
-
-      <Text appearance="hint" style={{ marginBottom: 12 }}>
-        请求接口并以 JSON 格式显示返回结果
-      </Text>
-      <Text appearance="hint" style={{ marginBottom: 12 }}>
-        URL：https://jsonplaceholder.typicode.com/todos/1
-      </Text>
-      <ScrollView
-        style={{
-          height: 200,
-          backgroundColor: "#f7f9fc",
-          borderRadius: 6,
-          padding: 8,
-          marginBottom: 12,
-        }}
-      >
-        <Text
-          style={{
-            fontFamily: "Courier",
-            fontSize: 12,
-          }}
-        >
-          {result || "暂无数据"}
-        </Text>
-      </ScrollView>
-
-      <Button onPress={sendRequest} disabled={loading}>
-        {loading ? "请求中..." : "发送请求"}
-      </Button>
-    </Card>
-  );
-};
-function NativeDebugCard() {
-  const moduleNames = Object.keys(NativeModules);
-
-  return (
-    <Card style={{ marginTop: 16 }}>
-      <Text category="h6" style={{ marginBottom: 8 }}>
-        NativeModules 调试
-      </Text>
-
-      <Text appearance="hint" style={{ marginBottom: 12 }}>
-        当前已注册的原生模块（{moduleNames.length} 个）
-      </Text>
-
-      <ScrollView style={{ maxHeight: 300 }}>
-        {moduleNames.length === 0 ? (
-          <Text status="warning">⚠️ NativeModules 为空</Text>
-        ) : (
-          moduleNames.map((name) => (
-            <Text key={name} style={{ fontSize: 12 }}>
-              • {name}
-            </Text>
-          ))
-        )}
-      </ScrollView>
-    </Card>
-  );
-}
-/* ---------------- 页面入口 ---------------- */
 export function HomePage() {
   const insets = useSafeAreaInsets();
+  const [latestScanCode, setLatestScanCode] = useState("");
+
+  const handleScan = useCallback((code: string) => {
+    setLatestScanCode(code.trim());
+  }, []);
+
   return (
     <ApplicationProvider {...eva} theme={eva.light}>
       <Layout
@@ -184,12 +26,9 @@ export function HomePage() {
           }}
           showsVerticalScrollIndicator={false}
         >
-          {/* <NativeDebugCard /> */}
-          <ImageCard />
-          <RequestCard />
           <SunmiPrintCard />
-          <SunmiScanCard />
-          <ScanHeadCard />
+          <SunmiScanCard onScan={handleScan} />
+          <ScanHeadCard value={latestScanCode} onScan={handleScan} />
         </ScrollView>
       </Layout>
     </ApplicationProvider>

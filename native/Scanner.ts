@@ -1,42 +1,125 @@
-import { DeviceEventEmitter, NativeModules } from "react-native";
+import {
+  DeviceEventEmitter,
+  EmitterSubscription,
+  NativeModules,
+  Platform,
+} from "react-native";
 
-const { SunmiScanModule } = NativeModules;
+type SunmiScanModuleType = {
+  scan?: () => Promise<unknown>;
+  startListen?: () => void;
+  stopListen?: () => void;
+};
 
 type ScanCallback = (code: string) => void;
+type ScanPayload = string | { code?: string; data?: string; result?: string };
+
+const SCAN_EVENT_NAME = "onScanSuccess";
+
+const sunmiScanModule =
+  NativeModules.SunmiScanModule as SunmiScanModuleType | undefined;
 
 class ScanManager {
-    private listeners: ScanCallback[] = [];
+  private listeners = new Set<ScanCallback>();
 
-    /** 开始扫码监听 */
-    start() {
-        // 监听 Native 发送的事件
-        DeviceEventEmitter.addListener("onScanSuccess", (code: string) => {
-            this.emit(code);
-        });
+  private subscription: EmitterSubscription | null = null;
+
+  private startRefCount = 0;
+
+  start() {
+    if (Platform.OS !== "android") {
+      return;
     }
 
-    /** 停止扫码监听 */
-    stop() {
-        // 目前我们模块里没有 stopListen，可以移除所有监听
-        DeviceEventEmitter.removeAllListeners("onScanSuccess");
+    this.startRefCount += 1;
+    if (this.subscription) {
+      return;
     }
 
-    /** 注册回调 */
-    onScan(cb: ScanCallback) {
-        this.listeners.push(cb);
+    this.subscription = DeviceEventEmitter.addListener(
+      SCAN_EVENT_NAME,
+      (payload: ScanPayload) => {
+        const code = this.normalizeCode(payload);
+        if (!code) {
+          return;
+        }
+
+        this.emit(code);
+      },
+    );
+
+    sunmiScanModule?.startListen?.();
+  }
+
+  stop() {
+    if (Platform.OS !== "android") {
+      return;
     }
 
-    /** 内部触发回调 */
-    private emit(code: string) {
-        this.listeners.forEach((cb) => cb(code));
+    this.startRefCount = Math.max(0, this.startRefCount - 1);
+    if (this.startRefCount > 0) {
+      return;
     }
 
-    /** 调用扫码 */
-    scan() {
-        console.log(SunmiScanModule);
+    this.subscription?.remove();
+    this.subscription = null;
 
-        return SunmiScanModule.scan();
+    sunmiScanModule?.stopListen?.();
+  }
+
+  onScan(cb: ScanCallback) {
+    this.listeners.add(cb);
+    return () => {
+      this.listeners.delete(cb);
+    };
+  }
+
+  emitScan(code: string) {
+    const clean = code.trim();
+    if (!clean) {
+      return;
     }
+
+    this.emit(clean);
+  }
+
+  async scan() {
+    if (Platform.OS !== "android") {
+      throw new Error("当前设备不是 Android，无法调用商米扫码");
+    }
+
+    if (!sunmiScanModule || typeof sunmiScanModule.scan !== "function") {
+      throw new Error(
+        "未找到 SunmiScanModule 原生模块，请先完成 Android 原生桥接并重新编译应用",
+      );
+    }
+
+    const payload = await sunmiScanModule.scan();
+    const code = this.normalizeCode(payload as ScanPayload);
+
+    if (!code) {
+      throw new Error("扫码结果为空");
+    }
+
+    this.emit(code);
+    return code;
+  }
+
+  private normalizeCode(payload: ScanPayload | undefined) {
+    if (!payload) {
+      return "";
+    }
+
+    if (typeof payload === "string") {
+      return payload.trim();
+    }
+
+    return (payload.code || payload.data || payload.result || "").trim();
+  }
+
+  private emit(code: string) {
+    this.listeners.forEach((listener) => listener(code));
+  }
 }
 
 export const scanManager = new ScanManager();
